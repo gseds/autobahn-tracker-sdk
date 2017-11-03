@@ -1,5 +1,7 @@
 package com.pearson.autobahn.trackersdk;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -7,6 +9,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * TrackerEvent
@@ -18,20 +26,73 @@ import java.io.IOException;
 public class TrackEvent {
     public JSONObject sdkParams;
     public TrackerConstants constants;
-    public TrackerAPI request;
+    public TrackerAPI apiBuilder;
+    public Offline offline;
+    public Timer offlineTimer;
+    OkHttpClient client;
+    private SharedPreferences sharedPreferences;
 
-    public TrackEvent(JSONObject params) throws JSONException {
+    /**
+     * Constructor
+     *
+     * @param params  SDK Params
+     * @param context Application Context
+     * @throws JSONException
+     * @throws IOException
+     */
+    public TrackEvent(JSONObject params, Context context) throws JSONException, IOException {
         sdkParams = params;
         constants = new TrackerConstants();
-        request = new TrackerAPI(params);
+        client = new OkHttpClient();
+        apiBuilder = new TrackerAPI(params);
+        if (context != null && (Boolean) sdkParams.get("offlineSupport")) {
+            offline = new Offline(context);
+            sharedPreferences = context.getSharedPreferences("AutobahnTrackerSP", 0);
+            this.checkDeviceStatus();
+        }
     }
 
+    /**
+     * checkDeviceStatus
+     * It checks the device is connected in Internet or Not.
+     *
+     * @throws IOException
+     * @throws JSONException
+     */
+    public void checkDeviceStatus() throws IOException, JSONException {
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (offline.isConnected()) {
+                    try {
+                        offline.processData(sdkParams, offline.EVENTS_TABLE_NAME);
+                        offline.processData(sdkParams, offline.ACTIVITIES_TABLE_NAME);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }, 0, constants.offlineInterval);
+
+    }
+
+    /**
+     * track
+     * It will track the user's interactions, send it to Receiver API.
+     *
+     * @param eventUrl
+     * @param eventData
+     * @param eventConfig
+     * @throws JSONException
+     * @throws IOException
+     */
     public void track(String eventUrl, JSONObject eventData, JSONObject eventConfig) throws JSONException, IOException {
-        Log.i("SDK: ", "Send Event");
         // Variables
-        JSONObject payload = new JSONObject();
         JSONObject data = new JSONObject();
         JSONObject eventPayload = new JSONObject();
+        JSONObject apiData = new JSONObject();
         JSONArray eventArray = new JSONArray();
         String messageVersion = "latest", messageNamespace = null;
 
@@ -72,6 +133,30 @@ public class TrackEvent {
         eventArray.put(data);
         eventPayload.put(eventUrl, eventArray);
 
-        request.send(eventUrl, eventPayload);
+        apiData.put("data", eventPayload);
+
+        if ((offline != null) && (Boolean) sdkParams.get("offlineSupport")) {
+            if (offline.isConnected()) {
+                Log.i("SDK:", "--: Online :--");
+                try {
+                    Request request = apiBuilder.getRequest(eventUrl, apiData.toString());
+                    Response response = client.newCall(request).execute();
+                    Log.i("Response", response.body().string());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Log.i("SDK:", "--: Offline :--");
+                offline.insertData(eventUrl, apiData.toString());
+            }
+        } else {
+            try {
+                Request request = apiBuilder.getRequest(eventUrl, apiData.toString());
+                Response response = client.newCall(request).execute();
+                Log.i("Response", response.body().string());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 package com.pearson.autobahn.trackersdk;
 
-import android.util.Log;
+import android.content.Context;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -17,14 +17,19 @@ import java.io.IOException;
 public class AutobahnTracker {
     public TrackEvent tracker;
 
-    public AutobahnTracker(JSONObject params) throws JSONException {
-        Log.i("SDK: ", "Events Handling ");
-        tracker = new TrackEvent(params);
+    public AutobahnTracker(JSONObject params) throws JSONException, IOException {
+        tracker = new TrackEvent(params, null);
+    }
+
+    public AutobahnTracker(JSONObject params, Context appContext) throws JSONException, IOException {
+        tracker = new TrackEvent(params, appContext);
     }
 
     /**
      * sendEvent
      * It is used to track event type parameters.
+     *
+     * @return {void}
      */
     public void sendEvent(JSONObject payload) throws JSONException, IOException {
         JSONObject config = new JSONObject();
@@ -38,6 +43,8 @@ public class AutobahnTracker {
     /**
      * sendActivity
      * It is used to track event type parameters.
+     *
+     * @return {void}
      */
     public void sendActivity(JSONObject payload) throws JSONException, IOException {
         JSONObject config = new JSONObject();

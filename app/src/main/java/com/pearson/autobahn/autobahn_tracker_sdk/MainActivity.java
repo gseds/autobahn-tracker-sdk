@@ -3,6 +3,7 @@ package com.pearson.autobahn.autobahn_tracker_sdk;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 
 import com.pearson.autobahn.trackersdk.AutobahnTracker;
 import com.pearson.autobahn.trackersdk.PETracker;
@@ -20,31 +21,58 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Log.i("SDK: ", " -- Tracker SDK --");
+        Log.i("SDK: ", "AB:SDK");
         JSONObject config = new JSONObject();
+
+        try {
+            // SDK Configuration
+            config.put("environment", "development");
+            config.put("originatingSystemCode", "AutobahnDemoApplication");
+//            config.put("offlineSupport", true);
+            trackerObject = PETracker.init("AB-RL-145827-1", config);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendEvent(View view) {
         JSONObject payload = new JSONObject();
         JSONObject eventConfig = new JSONObject();
 
         try {
-            // SDK Configuration
-            config.put("environment", "test");
-            config.put("originatingSystemCode", "AutobahnDemoApplication");
-            config.put("namespace", "gsetracker");
-
             // Event Payload
             payload.put("messageTypeCode", "pageview");
             payload.put("url", "DemoUrl");
             payload.put("userID", "User ID");
             payload.put("useragent", "User Agent");
 
-            // Event Config
+            // Event Configuration
             eventConfig.put("namespace", "gsetracker");
             eventConfig.put("messageVersion", "v4");
-            trackerObject = PETracker.init("PE-APP-1847-2", config);
             trackerObject.sendEvent(payload, eventConfig);
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (IOException e) {
+        }
+    }
+
+    public void sendActivity(View view) {
+        JSONObject payload = new JSONObject();
+        JSONObject eventConfig = new JSONObject();
+
+        try {
+            // Event Payload
+            payload.put("messageTypeCode", "pageview");
+            payload.put("url", "DemoUrl");
+            payload.put("userID", "User ID");
+            payload.put("useragent", "User Agent");
+
+            // Event Configuration
+            eventConfig.put("namespace", "gsetracker");
+            eventConfig.put("messageVersion", "v4");
+            trackerObject.sendActivity(payload, eventConfig);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
