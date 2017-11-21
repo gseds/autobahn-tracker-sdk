@@ -26,19 +26,19 @@ public class TrackerConstants {
         // Setting Default Values
         originatingSystemCode = "AutobahnTrackerSDK";
         environment = "production";
-        offlineSupport = false;
+        offlineSupport = true;
         schemaValidation = false;
         debugMode = true;
 
         // Autobahn URLS
         autobahnUrl = new JSONObject();
-        autobahnUrl.put("development", "https://devapi.english.com/autobahn/collect");
-        autobahnUrl.put("test", "https://testapi.english.com/autobahn/collect");
-        autobahnUrl.put("stage", "https://stageapi.english.com/autobahn/collect");
-        autobahnUrl.put("production", "https://api.english.com/autobahn/collect");
+        autobahnUrl.put("development", "https://devapi.english.com");
+        autobahnUrl.put("test", "https://testapi.english.com");
+        autobahnUrl.put("stage", "https://stageapi.english.com");
+        autobahnUrl.put("production", "https://api.english.com");
 
         // Offline
-        offlineInterval = 60000;
-        offlineRecordCount = 4;
+        offlineInterval = 10000; // 10 Seconds
+        offlineRecordCount = 30; // 30 Records
     }
 }

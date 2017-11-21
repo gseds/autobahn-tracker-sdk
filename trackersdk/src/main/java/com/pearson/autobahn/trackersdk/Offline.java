@@ -16,6 +16,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 
+import io.socket.client.Ack;
+import io.socket.client.Socket;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -114,7 +116,7 @@ public class Offline extends SQLiteOpenHelper {
         }
     }
 
-    public void processData(JSONObject sdkParams, String tableName) throws JSONException, IOException {
+    public void processData(final JSONObject sdkParams, final String tableName) throws JSONException, IOException {
         if (this.isConnected()) {
             // Open database connection
             database = this.getReadableDatabase();
@@ -135,7 +137,7 @@ public class Offline extends SQLiteOpenHelper {
                 cursor.close();
 
                 // Sending data to Receiver API
-                TrackerAPI requestBuilder = new TrackerAPI(sdkParams);
+                HttpRequest requestBuilder = new HttpRequest(sdkParams);
                 try {
                     String eventType = null;
                     if (tableName.indexOf("event") > -1) {
@@ -143,22 +145,64 @@ public class Offline extends SQLiteOpenHelper {
                     } else {
                         eventType = "activities";
                     }
-                    Request request = requestBuilder.getRequest(eventType, offlineData.toString());
-                    Response response = client.newCall(request).execute();
-                    Log.i("Offline: ", tableName);
-                    Log.i("Offline: ", response.body().string());
-                    if (response.code() == 200) {
-                        // Clear the tracked offline data
-                        database.execSQL("DELETE FROM " + tableName + " WHERE id <=" + lastRow);
 
-                        // Next Iteration
-                        cursor = database.rawQuery("SELECT id FROM " + tableName + " LIMIT " + RECORD_COUNT, null);
-                        if (cursor.getCount() > 0) {
-                            cursor.close();
-                            database.close();
-                            this.processData(sdkParams, tableName);
+                    // Sending data to Receiver Api
+                    Boolean sendViaSocket = false;
+                    if ((Boolean) sdkParams.has("enableSocket")) {
+                        sendViaSocket = (Boolean) sdkParams.get("enableSocket");
+                    }
+
+                    if (sendViaSocket) {
+                        Socket msocket = requestBuilder.getSocket();
+                        String socketEvent = "petracker-" + eventType;
+                        final int finalLastRow = lastRow;
+                        final Offline self = this;
+                        msocket.emit(socketEvent, offlineData, new Ack() {
+                            @Override
+                            public void call(Object... args) {
+                                Log.i("SDK Response:", "Data: " + args[0].toString());
+                                try {
+                                    JSONArray eventRespone = new JSONArray(args[0].toString());
+                                    JSONObject apiResponse = new JSONObject(eventRespone.get(0).toString());
+                                    if (!apiResponse.has("status")) {
+                                        // Clear the tracked offline data
+                                        database.execSQL("DELETE FROM " + tableName + " WHERE id <=" + finalLastRow);
+
+                                        // Next Iteration
+                                        Cursor cursor = database.rawQuery("SELECT id FROM " + tableName + " LIMIT " + RECORD_COUNT, null);
+                                        if (cursor.getCount() > 0) {
+                                            cursor.close();
+                                            database.close();
+                                            self.processData(sdkParams, tableName);
+                                        }
+                                    }
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+                    } else {
+                        Request request = requestBuilder.getRequest(eventType, offlineData.toString());
+                        Response response = client.newCall(request).execute();
+                        Log.i("Offline: ", tableName);
+                        Log.i("Offline: ", response.body().string());
+                        if (response.code() == 200) {
+                            // Clear the tracked offline data
+                            database.execSQL("DELETE FROM " + tableName + " WHERE id <=" + lastRow);
+
+                            // Next Iteration
+                            cursor = database.rawQuery("SELECT id FROM " + tableName + " LIMIT " + RECORD_COUNT, null);
+                            if (cursor.getCount() > 0) {
+                                cursor.close();
+                                database.close();
+                                this.processData(sdkParams, tableName);
+                            }
                         }
                     }
+
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

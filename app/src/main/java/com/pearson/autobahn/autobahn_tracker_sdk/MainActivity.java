@@ -28,8 +28,11 @@ public class MainActivity extends AppCompatActivity {
             // SDK Configuration
             config.put("environment", "development");
             config.put("originatingSystemCode", "AutobahnDemoApplication");
-//            config.put("offlineSupport", true);
-            trackerObject = PETracker.init("AB-RL-145827-1", config);
+            config.put("appOrigin", "http://autobahn.pearson.com:3000");
+            config.put("offlineSupport", true);
+            config.put("enableSocket", true);
+            trackerObject = PETracker.init("AB-RL-145827-1", config, this);
+
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (IOException e) {

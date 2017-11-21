@@ -12,9 +12,9 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import io.socket.client.Ack;
+import io.socket.client.Socket;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 /**
  * TrackerEvent
@@ -26,11 +26,14 @@ import okhttp3.Response;
 public class TrackEvent {
     public JSONObject sdkParams;
     public TrackerConstants constants;
-    public TrackerAPI apiBuilder;
+
     public Offline offline;
     public Timer offlineTimer;
     OkHttpClient client;
+    private HttpRequest request;
     private SharedPreferences sharedPreferences;
+    private Boolean offlineEnabled;
+    private Boolean sendViaSocket;
 
     /**
      * Constructor
@@ -41,14 +44,31 @@ public class TrackEvent {
      * @throws IOException
      */
     public TrackEvent(JSONObject params, Context context) throws JSONException, IOException {
+        // Default values
         sdkParams = params;
         constants = new TrackerConstants();
-        client = new OkHttpClient();
-        apiBuilder = new TrackerAPI(params);
-        if (context != null && (Boolean) sdkParams.get("offlineSupport")) {
-            offline = new Offline(context);
-            sharedPreferences = context.getSharedPreferences("AutobahnTrackerSP", 0);
-            this.checkDeviceStatus();
+        request = new HttpRequest(params);
+        offlineEnabled = false;
+        sendViaSocket = false;
+
+        // Receiver Access Point
+        if ((Boolean) sdkParams.has("enableSocket")) {
+            sendViaSocket = (Boolean) sdkParams.get("enableSocket");
+        }
+
+        // Offline Processing
+        if (context != null) {
+            if ((Boolean) sdkParams.has("offlineSupport")) {
+                offlineEnabled = (Boolean) sdkParams.get("offlineSupport");
+            } else {
+                offlineEnabled = constants.offlineSupport;
+            }
+
+            if (offlineEnabled) {
+                offline = new Offline(context);
+                sharedPreferences = context.getSharedPreferences("AutobahnTrackerSP", 0);
+                this.checkDeviceStatus();
+            }
         }
     }
 
@@ -135,25 +155,23 @@ public class TrackEvent {
 
         apiData.put("data", eventPayload);
 
-        if ((offline != null) && (Boolean) sdkParams.get("offlineSupport")) {
-            if (offline.isConnected()) {
-                Log.i("SDK:", "--: Online :--");
-                try {
-                    Request request = apiBuilder.getRequest(eventUrl, apiData.toString());
-                    Response response = client.newCall(request).execute();
-                    Log.i("Response", response.body().string());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else {
-                Log.i("SDK:", "--: Offline :--");
-                offline.insertData(eventUrl, apiData.toString());
-            }
+        if (offlineEnabled) {
+            Log.i("SDK:", "--: Offline :--");
+            offline.insertData(eventUrl, apiData.toString());
         } else {
             try {
-                Request request = apiBuilder.getRequest(eventUrl, apiData.toString());
-                Response response = client.newCall(request).execute();
-                Log.i("Response", response.body().string());
+                if (sendViaSocket) {
+                    String socketEvent = "petracker-" + eventUrl;
+                    Socket socket = request.getSocket();
+                    socket.emit(socketEvent, apiData, new Ack() {
+                        @Override
+                        public void call(Object... args) {
+                            Log.i("SDK Response:", "Data: " + args[0].toString());
+                        }
+                    });
+                } else {
+                    request.sendResetAPI(eventUrl, apiData.toString());
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
