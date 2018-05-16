@@ -69,7 +69,9 @@ public class HttpRequest {
                                     Map<String, List<String>> headers = (Map<String, List<String>>) args[0];
                                     try {
                                         headers.put("PETRACKER-TRACKING-ID", Arrays.asList(sdkParams.getString("trackingID")));
-                                        headers.put("Origin", Arrays.asList(sdkParams.getString("appOrigin")));
+                                        if (sdkParams.has("appOrigin")) {
+                                            headers.put("Origin", Arrays.asList(sdkParams.getString("appOrigin")));
+                                        }
                                     } catch (JSONException e) {
                                         e.printStackTrace();
                                     }
@@ -103,8 +105,9 @@ public class HttpRequest {
         return null;
     }
 
-    public void sendResetAPI(String eventUrl, String data) throws IOException, JSONException {
+    public void sendRestAPI(String eventUrl, String data) throws IOException, JSONException {
         String apiUrl = constants.autobahnUrl.getString("production") + "/autobahn/collect/";
+        String appOrigin = null;
         // Send Data to Receiver
         if (sdkParams.has("environment")) {
             apiUrl = constants.autobahnUrl.getString(String.valueOf(sdkParams.get("environment"))) + "/autobahn/collect/" + eventUrl;
@@ -119,12 +122,15 @@ public class HttpRequest {
         }
 
         RequestBody reqBody = RequestBody.create(JSON, data);
+        if (sdkParams.has("appOrigin")) {
+            appOrigin = sdkParams.getString("appOrigin");
+        }
         Request request = new Request.Builder()
                 .url(apiUrl)
                 .post(reqBody)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("PETRACKER-TRACKING-ID", sdkParams.getString("trackingID"))
-                .addHeader("Origin", sdkParams.getString("appOrigin"))
+                .addHeader("Origin", appOrigin)
                 .build();
 
         Response response = client.newCall(request).execute();
@@ -133,6 +139,7 @@ public class HttpRequest {
 
     public Request getRequest(String eventUrl, String data) throws IOException, JSONException {
         String apiUrl = constants.autobahnUrl.getString("production") + "/autobahn/collect/";
+        String appOrigin = null;
         // Send Data to Receiver
         if (sdkParams.has("environment")) {
             apiUrl = constants.autobahnUrl.getString(String.valueOf(sdkParams.get("environment"))) + "/autobahn/collect/" + eventUrl;
@@ -146,13 +153,17 @@ public class HttpRequest {
             StrictMode.setThreadPolicy(policy);
         }
 
+        if (sdkParams.has("appOrigin")) {
+            appOrigin = sdkParams.getString("appOrigin");
+        }
+
         RequestBody reqBody = RequestBody.create(JSON, data);
         Request request = new Request.Builder()
                 .url(apiUrl)
                 .post(reqBody)
                 .addHeader("Content-Type", "application/json")
                 .addHeader("PETRACKER-TRACKING-ID", sdkParams.getString("trackingID"))
-                .addHeader("Origin", sdkParams.getString("appOrigin"))
+                .addHeader("Origin", appOrigin)
                 .build();
 
         return request;

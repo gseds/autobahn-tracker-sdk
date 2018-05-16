@@ -30,7 +30,7 @@ public class PETracker {
         JSONObject config = new JSONObject();
 
         // Checking the TrackingID is empty or not
-        if (TextUtils.isEmpty(trackingID)) {
+        if (trackingID == null || trackingID.length() == 0) {
             throw new Error("Tracker SDK requires valid TrackingID");
         }
         config.put("trackingID", trackingID);
@@ -48,7 +48,7 @@ public class PETracker {
      */
     public static AutobahnTracker init(String trackingID, JSONObject config) throws JSONException, IOException {
         // Checking the TrackingID is empty or not
-        if (TextUtils.isEmpty(trackingID)) {
+        if (trackingID == null || trackingID.length() == 0) {
             throw new Error("Tracker SDK requires valid TrackingID");
         }
         config.put("trackingID", trackingID);
@@ -67,7 +67,7 @@ public class PETracker {
      */
     public static AutobahnTracker init(String trackingID, JSONObject config, Context context) throws JSONException, IOException {
         // Checking the TrackingID is empty or not
-        if (TextUtils.isEmpty(trackingID)) {
+        if (trackingID == null || trackingID.length() == 0) {
             throw new Error("Tracker SDK requires valid TrackingID");
         }
         config.put("trackingID", trackingID);

@@ -28,14 +28,19 @@ public class TrackerConstants {
         environment = "production";
         offlineSupport = true;
         schemaValidation = false;
-        debugMode = true;
+        debugMode = false;
 
         // Autobahn URLS
         autobahnUrl = new JSONObject();
         autobahnUrl.put("development", "https://devapi.english.com");
+        autobahnUrl.put("dev", "https://devapi.english.com");
         autobahnUrl.put("test", "https://testapi.english.com");
+        autobahnUrl.put("int", "https://testapi.english.com");
         autobahnUrl.put("stage", "https://stageapi.english.com");
+        autobahnUrl.put("stg", "https://stageapi.english.com");
+        autobahnUrl.put("prf", "https://prfeapi.english.com");
         autobahnUrl.put("production", "https://api.english.com");
+        autobahnUrl.put("prd", "https://api.english.com");
 
         // Offline
         offlineInterval = 10000; // 10 Seconds

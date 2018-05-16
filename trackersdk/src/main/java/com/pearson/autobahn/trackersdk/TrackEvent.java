@@ -58,6 +58,7 @@ public class TrackEvent {
 
         // Offline Processing
         if (context != null) {
+
             if ((Boolean) sdkParams.has("offlineSupport")) {
                 offlineEnabled = (Boolean) sdkParams.get("offlineSupport");
             } else {
@@ -170,7 +171,7 @@ public class TrackEvent {
                         }
                     });
                 } else {
-                    request.sendResetAPI(eventUrl, apiData.toString());
+                    request.sendRestAPI(eventUrl, apiData.toString());
                 }
             } catch (Exception e) {
                 e.printStackTrace();

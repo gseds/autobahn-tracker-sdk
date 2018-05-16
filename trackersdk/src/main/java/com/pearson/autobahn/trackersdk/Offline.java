@@ -54,7 +54,9 @@ public class Offline extends SQLiteOpenHelper {
         // Configurations
         appContext = context;
         sharedPreferences = context.getSharedPreferences("AutobahnTrackerSP", 0);
-        editor = sharedPreferences.edit();
+        if (sharedPreferences != null) {
+            editor = sharedPreferences.edit();
+        }
         constants = new TrackerConstants();
         RECORD_COUNT = constants.offlineRecordCount;
         client = new OkHttpClient();
